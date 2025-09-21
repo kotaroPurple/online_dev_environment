@@ -26,4 +26,5 @@ online-dev-environment = { workspace = true, editable = true }
 [dependency-groups]
 dev = [
     "online-dev-environment",
+    "pytest>=8.4.2",
 ]
