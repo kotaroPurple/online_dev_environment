@@ -7,6 +7,7 @@ from .io import (
     CollateFn,
     IterableDataset,
     StreamDataLoader,
+    MultiSensorDataset
 )
 from .monitoring import ConsoleMonitor, ErrorPolicy, PipelineMonitor
 from .nodes import (
@@ -25,6 +26,7 @@ __all__ = [
     "CollateFn",
     "IterableDataset",
     "StreamDataLoader",
+    "MultiSensorDataset",
     "ConsoleMonitor",
     "ErrorPolicy",
     "PipelineMonitor",

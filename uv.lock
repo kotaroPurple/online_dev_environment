@@ -73,5 +73,13 @@ dependencies = [
     { name = "numpy" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "online-dev-environment" },
+]
+
 [package.metadata]
 requires-dist = [{ name = "numpy", specifier = ">=2.3.3" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "online-dev-environment", editable = "." }]
