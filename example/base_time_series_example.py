@@ -11,12 +11,12 @@ from online_dev_environment.base.data import BaseTimeSeries
 
 def main() -> None:
     now = datetime.now(tz=timezone.utc)
-    sample_rate = 200.0
+    sample_rate = 100.0
     seconds = 1.0
     samples = int(sample_rate * seconds)
 
     # Simulate a single-axis accelerometer
-    time_axis = np.linspace(0.0, seconds, samples, endpoint=False)
+    # time_axis = np.linspace(0.0, seconds, samples, endpoint=False)
     accel_values = 0.1 * np.random.randn(samples, 1) + 9.81  # noisy gravity vector
 
     block = BaseTimeSeries(

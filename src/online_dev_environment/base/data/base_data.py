@@ -5,16 +5,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 
-Array = npt.NDArray[np.float64]
+Array = npt.NDArray[np.number]
 
 
 def _ensure_array(values: npt.ArrayLike) -> Array:
-    array = np.asarray(values, dtype=np.float64)
+    array = np.asarray(values)
     if array.ndim == 0:
         raise ValueError("values must be at least 1-D")
     return array
@@ -27,7 +27,7 @@ class BaseTimeSeries:
     values: Array
     sample_rate: float
     timestamp: datetime
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         array = _ensure_array(self.values)
@@ -57,7 +57,7 @@ class BaseTimeSeries:
         self,
         *,
         values: npt.ArrayLike | None = None,
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> "BaseTimeSeries":
         new_values = _ensure_array(values) if values is not None else self.values.copy()
         new_metadata = dict(metadata) if metadata is not None else dict(self.metadata)
