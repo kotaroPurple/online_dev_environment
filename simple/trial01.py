@@ -10,29 +10,34 @@ from pipeline import PipelineBuilder, Pipeline
 from node import MovingAverageNode
 
 
-def generate_source(n_blocks: int = 10, block_size: int = 100) -> list[BaseTimeSeries]:
+def generate_source(total_blocks: int = 10, block_size: int = 100) -> BaseTimeSeries:
     now = datetime.now(tz=timezone.utc)
-    grid = np.linspace(0.0, 2 * np.pi, block_size, endpoint=False)
-    return [
-        BaseTimeSeries(
-            values=np.sin(grid + idx * np.pi / 32)[:, None],  # (N, 1)
-            sample_rate=256.0,
-            timestamp=now,
-            metadata={"block_index": idx},
-        )
-        for idx in range(n_blocks)
-    ]
+    total_samples = total_blocks * block_size
+    grid = np.linspace(0.0, 2 * np.pi, total_samples, endpoint=False)
+    sensors = ["sin", "cos"]
+    values = np.stack(
+        [
+            np.sin(grid),
+            np.cos(grid / 2.0),
+        ],
+        axis=1,
+    )
+
+    return BaseTimeSeries(
+        values=values,
+        sample_rate=256.0,
+        timestamp=now,
+        metadata={"sensors": sensors, "block_size": block_size},
+    )
 
 
 def trial() -> None:
     # list [BaseTimeSeries]
-    source = generate_source()
-    dataset = IterableDataset(source)
+    series = generate_source()
+    dataset = IterableDataset(series)
 
     # dataloader: iteration of dataset
-    loader = StreamDataLoader(dataset)
-    for one in loader:
-        print(type(one), one.values.shape, one.metadata)
+    loader = StreamDataLoader(dataset, slice_size=32)
 
     # build pipeline
     builder = PipelineBuilder(

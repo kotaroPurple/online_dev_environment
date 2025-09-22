@@ -2,7 +2,7 @@
 """やりとり用のデータ, データ格納 Buffer"""
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Iterator
 
 import numpy as np
@@ -15,6 +15,10 @@ def _ensure_array(values: npt.ArrayLike) -> Array:
     array = np.asarray(values)
     if array.ndim == 0:
         raise ValueError("values must be at least 1-D")
+    if array.ndim == 1:
+        array = array[:, None]
+    if array.ndim != 2:
+        raise ValueError("values must be a 2-D array")
     return array
 
 
@@ -47,6 +51,10 @@ class BaseTimeSeries:
         return int(self.values.shape[0])
 
     @property
+    def sensor_count(self) -> int:
+        return int(self.values.shape[1])
+
+    @property
     def duration_seconds(self) -> float:
         return float(self.block_size / self.sample_rate)
 
@@ -63,6 +71,33 @@ class BaseTimeSeries:
             sample_rate=self.sample_rate,
             timestamp=self.timestamp,
             metadata=new_metadata,
+        )
+
+    def __getitem__(self, item: slice) -> "BaseTimeSeries":
+        if not isinstance(item, slice):
+            raise TypeError("BaseTimeSeries only supports slicing with slice objects")
+
+        # limit slice
+        start, stop, step = item.indices(self.block_size)
+        if step <= 0:
+            raise ValueError("slice step must be positive")
+
+        sliced_values = self.values[item]
+        array = _ensure_array(sliced_values)
+        if array.shape[0] == 0:
+            raise IndexError("slice produced an empty block")
+
+        offset_seconds = start / self.sample_rate
+        timestamp = self.timestamp + timedelta(seconds=offset_seconds)
+
+        metadata = dict(self.metadata)
+        metadata["slice"] = (start, stop, step)
+
+        return BaseTimeSeries(
+            values=array,
+            sample_rate=self.sample_rate,
+            timestamp=timestamp,
+            metadata=metadata,
         )
 
 

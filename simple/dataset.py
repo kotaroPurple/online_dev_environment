@@ -1,6 +1,6 @@
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Iterator
+from typing import Iterator
 
 from data import BaseTimeSeries
 
@@ -15,15 +15,32 @@ class Dataset(ABC):
 
 
 class IterableDataset(Dataset):
-    def __init__(self, blocks: Iterable[BaseTimeSeries]) -> None:
-        self._blocks: list[BaseTimeSeries] = list(blocks)
+    def __init__(self, series: BaseTimeSeries) -> None:
+        self._series = series
 
     def __iter__(self) -> Iterator[BaseTimeSeries]:
-        for block in self._blocks:
-            yield block
+        yield self._series
 
     def __len__(self) -> int:
-        return len(self._blocks)
+        return self._series.block_size
+
+    def __getitem__(self, item: int | slice) -> BaseTimeSeries:
+        if isinstance(item, slice):
+            return self._series[item]
+
+        index = self._normalise_index(item)
+        return self._series[index:index + 1]
+
+    @property
+    def series(self) -> BaseTimeSeries:
+        return self._series
+
+    def _normalise_index(self, index: int) -> int:
+        if index < 0:
+            index += self._series.block_size
+        if index < 0 or index >= self._series.block_size:
+            raise IndexError("sample index out of range")
+        return index
 
 
 # class MultiSensorDataset(Dataset):
