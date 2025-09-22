@@ -21,7 +21,7 @@ members = [
 ]
 
 [tool.uv.sources]
-online-dev-environment = { workspace = true, editable = true }
+online-dev-environment = { path = ".", editable = true }
 
 [dependency-groups]
 dev = [
