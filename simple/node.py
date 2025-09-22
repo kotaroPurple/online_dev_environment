@@ -24,6 +24,37 @@ class ProcessingNode:
         raise NotImplementedError
 
 
+class MovingAverageNode(ProcessingNode):
+    def __init__(self, key_in: str, key_out: str|None, *, window: int = 5) -> None:
+        if window <= 0:
+            raise ValueError("window must be positive")
+        super().__init__()
+        self._key_in = key_in
+        self._key_out = key_out or f"{key_in}_ma{window}"
+        self._window = window
+        self._kernel = np.ones(window, dtype=np.float64) / window
+
+    def requires(self) -> Iterable[str]:
+        return [self._key_in]
+
+    def produces(self) -> Iterable[str]:
+        return [self._key_out]
+
+    def process(self, inputs: dict[str, BaseTimeSeries]) -> dict[str, BaseTimeSeries]:
+        block = inputs[self._key_in]
+        if block.values.shape[0]< self._window:
+            return {self._key_out: block}
+        convolved = np.apply_along_axis(
+            lambda m: np.convolve(m, self._kernel, mode='valid'), axis=0, arr=block.values)
+        pad = block.values.shape[0] - convolved.shape[0]
+        if pad > 0:
+            prefix = np.repeat(convolved[0:1], pad, axis=0)
+            smoothed = np.vstack([prefix, convolved])
+        else:
+            smoothed = convolved
+        return {self._key_out: block.copy_with(values=smoothed)}
+
+
 # class NormalizerNode(ProcessingNode):
 #     def __init__(self, key_in: str, key_out: str | None = None, *, eps: float = 1e-9) -> None:
 #         super().__init__()
@@ -45,40 +76,6 @@ class ProcessingNode:
 #         scaled = block.values / peak
 #         metadata = {**block.metadata, "scale": float(1.0 / peak)}
 #         return {self._key_out: block.copy_with(values=scaled, metadata=metadata)}
-
-
-# class MovingAverageNode(ProcessingNode):
-#     def __init__(self, key_in: str, key_out: str | None = None, *, window: int = 5) -> None:
-#         if window <= 0:
-#             raise ValueError("window must be positive")
-#         super().__init__()
-#         self._key_in = key_in
-#         self._key_out = key_out or f"{key_in}_ma{window}"
-#         self._window = window
-#         self._kernel = np.ones(window, dtype=np.float64) / window
-
-#     def requires(self) -> Iterable[str]:
-#         return [self._key_in]
-
-#     def produces(self) -> Iterable[str]:
-#         return [self._key_out]
-
-#     def process(self, inputs: Dict[str, BaseTimeSeries]) -> Dict[str, BaseTimeSeries]:
-#         block = inputs[self._key_in]
-#         if block.values.shape[0] < self._window:
-#             return {self._key_out: block}
-#         convolved = np.apply_along_axis(
-#             lambda m: np.convolve(m, self._kernel, mode="valid"),
-#             axis=0,
-#             arr=block.values,
-#         )
-#         pad = block.values.shape[0] - convolved.shape[0]
-#         if pad > 0:
-#             prefix = np.repeat(convolved[0:1], pad, axis=0)
-#             smoothed = np.vstack([prefix, convolved])
-#         else:
-#             smoothed = convolved
-#         return {self._key_out: block.copy_with(values=smoothed)}
 
 
 # class SlidingWindowNode(ProcessingNode):
