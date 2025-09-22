@@ -7,7 +7,7 @@ from data import BaseTimeSeries
 from dataset import IterableDataset
 from dataloader import StreamDataLoader
 from pipeline import PipelineBuilder, Pipeline
-from node import MovingAverageNode
+from node import FFTNode, MovingAverageNode, WindowBufferNode
 
 
 def generate_source(total_blocks: int = 10, block_size: int = 100) -> BaseTimeSeries:
@@ -44,15 +44,20 @@ def trial() -> None:
         input_key="my_input",
         output_keys=[
             "my_output",
+            "fft_output",
         ],
     )
 
     builder.add_node(MovingAverageNode("my_input", "my_output", window=5))
+    builder.add_node(WindowBufferNode("my_input", "fft_window", window_size=256, hop_size=128))
+    builder.add_node(FFTNode("fft_window", "fft_output"))
 
     pipeline: Pipeline = builder.build(loader)
 
     for outputs in pipeline.run():
-        print(type(outputs), outputs['my_output'].values.shape)
+        fft_block = outputs.get("fft_output")
+        if fft_block is not None:
+            print("FFT", fft_block.values.shape, fft_block.metadata.get("slice"))
 
 
 def main() -> None:
